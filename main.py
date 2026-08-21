@@ -7,13 +7,13 @@ def setValues(x):
 
 cv.namedWindow("Color detectors")
 
-cv.createTrackbar("Upper Hue", "Color detectors", 153, 180, setValues)
+cv.createTrackbar("Upper Hue", "Color detectors", 136, 180, setValues)
 cv.createTrackbar("Upper Saturation", "Color detectors", 255, 255, setValues)
 cv.createTrackbar("Upper Value", "Color detectors", 255, 255, setValues)
 
-cv.createTrackbar("Lower Hue", "Color detectors", 64, 180, setValues)
-cv.createTrackbar("Lower Saturation", "Color detectors", 72, 255, setValues)
-cv.createTrackbar("Lower Value", "Color detectors", 49, 255, setValues)
+cv.createTrackbar("Lower Hue", "Color detectors", 100, 180, setValues)
+cv.createTrackbar("Lower Saturation", "Color detectors", 83, 255, setValues)
+cv.createTrackbar("Lower Value", "Color detectors", 84, 255, setValues)
 
 bpoints = [deque(maxlen=1024)]
 gpoints = [deque(maxlen=1024)]
@@ -45,6 +45,9 @@ cv.putText(paintWindow,"CLEAR",(54,33), cv.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,25
 # cv.namedWindow('Paint',cv.WINDOW_AUTOSIZE)
 
 cap = cv.VideoCapture(0)
+cv.namedWindow("Live Drawing", cv.WINDOW_NORMAL)
+cv.resizeWindow("Live Drawing", 1280, 720)
+
 
 while True:
     Success, frame = cap.read()
