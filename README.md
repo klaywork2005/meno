@@ -1,12 +1,11 @@
-# Meno — Air Canvas
+# Meno - An Air Canvas
 
-Meno tracks a coloured object in a webcam feed and draws a stroke along the
-path it takes, turning any sufficiently saturated object into a brush. Input is
-the camera only; no mouse or touchscreen is used while drawing.
+Meno tracks a coloured object in a camera feed and draws a stroke along the
+path it takes, turning any colored object into a pen tip. Input is
+the camera only and no mouse or touchscreen is used while drawing.
 
-Implemented with Python, OpenCV, NumPy and PySide6. It uses classical computer
-vision. colour thresholding and contour analysis — with no machine-learning
-model and no training data.
+Implemented with Python, OpenCV, NumPy and PySide6. It uses computer
+vision personal project.
 
 <!-- Add a demo GIF here once recorded, e.g.:
 ![Demo](docs/demo.gif)
@@ -16,25 +15,25 @@ model and no training data.
 
 ## Features
 
-- **Colour tracking** — segments the pen object in HSV space and follows the
+- **Colour tracking** : segments the pen object in HSV space and follows the
   centroid of the largest matching blob.
-- **Live HSV tuning** — six sliders adjust the colour thresholds while the
+- **Live HSV tuning** : six sliders adjust the colour thresholds while the
   application runs, for different objects and lighting conditions.
-- **Named presets** — threshold sets can be saved and recalled, so the sliders
+- **Named presets** : threshold sets can be saved and recalled, so the sliders
   do not have to be retuned each session.
-- **On-screen toolbar** — holding the pen over the strip at the top of the
+- **On-screen toolbar** : holding the pen over the strip at the top of the
   frame switches colour or clears the canvas.
-- **Editable HUD** — the toolbar is defined by a JSON file. Buttons can be
+- **Editable HUD** : the toolbar is defined by a JSON file. Buttons can be
   moved and resized by dragging, or edited by hand in
   `%APPDATA%\Meno\hud.json`.
-- **Pen-up detection** — moving the object out of frame ends the current
+- **Pen-up detection** : moving the object out of frame ends the current
   stroke, so separate strokes are not joined by a connecting line.
-- **Three synchronised views** — the live feed with the drawing overlaid, the
+- **Three synchronised views** : the live feed with the drawing overlaid, the
   paint canvas alone, and the binary mask used for threshold tuning.
-- **Exposure control** — locks the camera exposure, which raises the frame rate
+- **Exposure control** : locks the camera exposure, which raises the frame rate
   in low light and keeps colours constant. See
   [Camera and frame rate](#camera-and-frame-rate).
-- **Canvas export** — saves the artwork as PNG or JPEG, without the toolbar.
+- **Canvas export** : saves the artwork as PNG or JPEG, without the toolbar.
 
 ---
 
@@ -103,11 +102,11 @@ control panel. The last three are dock widgets and can be hidden from the
 Hold the object in front of the camera and watch the **Mask** view. Adjust the
 six sliders until the object is the only solid white shape in it:
 
-- **Hue** — the target colour (0–180 in OpenCV, half the usual 0–360°). Set the
+- **Hue** : the target colour (0–180 in OpenCV, half the usual 0–360°). Set the
   lower and upper pair to bracket the object's hue.
-- **Saturation** — colour intensity. Raise the lower bound to reject greys and
+- **Saturation** : colour intensity. Raise the lower bound to reject greys and
   skin tones.
-- **Value** — brightness. Raise the lower bound to reject shadows.
+- **Value** : brightness. Raise the lower bound to reject shadows.
 
 The shipped presets cover blue, green, red and yellow objects under indoor
 light. **Save as...** stores the current values under a name.
@@ -269,8 +268,8 @@ depend on.
 
 ## Known limitations & possible next steps
 
-- Only one object is tracked at a time — the largest blob wins.
-- Hover-to-click has no dwell timer, so moving the pen across the toolbar on
+- Only one object is tracked at a time. 
+- Hover-to-click has no timer, so moving the pen across the toolbar on
   the way elsewhere can trigger a button.
 - Switching cameras takes one to two seconds, during which no frames arrive.
 - Exposure control is implemented for DirectShow and V4L2 property semantics;
