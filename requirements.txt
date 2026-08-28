@@ -1,9 +1,10 @@
-# Runtime dependencies for Meno - Air Canvas.
+# Runtime dependencies for Meno.
 # Install with:  pip install -r requirements.txt
-#
-# Lower bounds reflect the APIs the app relies on (the two-value findContours
-# signature introduced in OpenCV 4); the versions this project is developed
-# against are noted alongside.
+# (or `pip install -e .`, which reads pyproject.toml instead)
 
-opencv-python>=4.5        # developed against 5.0.0 - capture, HSV, contours, GUI
-numpy>=1.21               # developed against 2.5.2 - frame buffers and array math
+# The headless wheel is required: opencv-python bundles its own Qt plugins,
+# which conflict with PySide6's in the same process. The GUI is Qt's, so
+# OpenCV's own windows are not used.
+opencv-python-headless>=4.5   # capture, HSV, contours
+numpy>=1.21                   # frame buffers and array math
+PySide6-Essentials>=6.7       # desktop front end

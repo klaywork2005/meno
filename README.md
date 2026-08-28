@@ -1,12 +1,12 @@
 # Meno — Air Canvas
 
-Draw in the air. **Meno** turns any coloured object — a bottle cap, a marker
-lid, a sticky note on your fingertip — into a paintbrush for your webcam. There
-is no mouse and no touchscreen: the program tracks the object frame by frame and
-lays down a stroke wherever it moves.
+Meno tracks a coloured object in a webcam feed and draws a stroke along the
+path it takes, turning any sufficiently saturated object into a brush. Input is
+the camera only; no mouse or touchscreen is used while drawing.
 
-Built with Python, OpenCV and NumPy in ~300 lines, with no machine-learning
-model and no training data — just classical computer vision running in real time.
+Implemented with Python, OpenCV, NumPy and PySide6. It uses classical computer
+vision — colour thresholding and contour analysis — with no machine-learning
+model and no training data.
 
 <!-- Add a demo GIF here once recorded, e.g.:
 ![Demo](docs/demo.gif)
@@ -16,52 +16,60 @@ model and no training data — just classical computer vision running in real ti
 
 ## Features
 
-- **Real-time colour tracking** — segments the pen object in HSV space and
-  follows the centroid of the largest matching blob.
-- **Live HSV tuning** — six trackbars let you re-tune the colour thresholds
-  while the program runs, so it adapts to any object and any lighting.
-- **Gesture-driven toolbar** — hover the pen over the strip at the top of the
-  frame to switch colour or clear the canvas. No keyboard needed while drawing.
-- **Four-colour palette** — blue, green, red and yellow, each with its own
-  independent stroke history.
-- **Pen-up detection** — moving the object out of frame ends the current stroke,
-  so separate strokes never get joined by a stray connecting line.
-- **Three synchronised views** — the live camera feed with the drawing overlaid,
-  a clean paint canvas, and the raw binary mask for debugging your thresholds.
+- **Colour tracking** — segments the pen object in HSV space and follows the
+  centroid of the largest matching blob.
+- **Live HSV tuning** — six sliders adjust the colour thresholds while the
+  application runs, for different objects and lighting conditions.
+- **Named presets** — threshold sets can be saved and recalled, so the sliders
+  do not have to be retuned each session.
+- **On-screen toolbar** — holding the pen over the strip at the top of the
+  frame switches colour or clears the canvas.
+- **Editable HUD** — the toolbar is defined by a JSON file. Buttons can be
+  moved and resized by dragging, or edited by hand in
+  `%APPDATA%\Meno\hud.json`.
+- **Pen-up detection** — moving the object out of frame ends the current
+  stroke, so separate strokes are not joined by a connecting line.
+- **Three synchronised views** — the live feed with the drawing overlaid, the
+  paint canvas alone, and the binary mask used for threshold tuning.
+- **Exposure control** — locks the camera exposure, which raises the frame rate
+  in low light and keeps colours constant. See
+  [Camera and frame rate](#camera-and-frame-rate).
+- **Canvas export** — saves the artwork as PNG or JPEG, without the toolbar.
 
 ---
 
 ## How it works
 
-Each frame runs through the same six-stage pipeline:
+Each frame runs through the same pipeline:
 
 | # | Stage | What happens |
 |---|-------|--------------|
-| 1 | **Capture & mirror** | Read a frame from the webcam and flip it horizontally, so moving your hand right moves the pointer right. |
-| 2 | **Colour segmentation** | Convert BGR → HSV and `inRange()` against the trackbar bounds. HSV separates *hue* from *brightness*, which makes thresholding far more tolerant of changing light than raw BGR. |
-| 3 | **Noise removal** | Erode → morphological open → dilate with a 5×5 kernel. Speckles vanish; the real blob keeps its original size. |
-| 4 | **Blob tracking** | `findContours()` with `RETR_EXTERNAL`, take the largest contour by area, then use image moments (`m10/m00`, `m01/m00`) to get its centroid — the pen tip for this frame. |
-| 5 | **Interpret** | If the tip is inside the top 65 px it is a button press (clear / pick a colour); otherwise the point joins the stroke currently being drawn. |
-| 6 | **Render** | Replay every stored stroke as connected line segments onto both the camera feed and the paint canvas. |
+| 1 | **Capture** | A worker thread reads a frame from the webcam and passes it to the GUI thread by signal. Capture is off the GUI thread because `cap.read()` blocks. |
+| 2 | **Mirror** | The frame is flipped horizontally, so moving the object right moves the pointer right. |
+| 3 | **Colour segmentation** | BGR is converted to HSV and thresholded with `inRange()`. HSV separates hue from brightness, which makes thresholding more tolerant of lighting changes than raw BGR. |
+| 4 | **Noise removal** | Erode → morphological open → dilate with a 5×5 kernel. Speckles are removed; the target blob keeps its original size. |
+| 5 | **Blob tracking** | `findContours()` with `RETR_EXTERNAL`, then the largest contour by area. Image moments (`m10/m00`, `m01/m00`) give its centroid, which is the pen tip for this frame. |
+| 6 | **Interpret** | A tip inside the toolbar band is a button press (clear, or select a colour); below it, the point extends the stroke in progress. |
+| 7 | **Render** | The new segment is drawn once into a persistent ink layer, which is then composited onto the frame in a single masked copy. |
 
 ### Stroke storage
 
-Points are stored as one `deque` per stroke, grouped into one list per colour:
+Points are stored as one `deque` per stroke, grouped into one list per palette
+colour. `maxlen` bounds the memory a long session can use: old points fall off
+the tail. When the pen leaves the frame a fresh deque is appended to each list,
+which is what prevents two separate strokes from being joined by one straight
+line.
 
-```python
-bpoints = [deque_of_stroke_0, deque_of_stroke_1, ...]
-```
-
-A `deque` with `maxlen` bounds the memory a long session can use — old points
-fall off the tail automatically. When the pen leaves the frame, a fresh deque is
-pushed onto each list and the matching index is bumped; that "pen up" event is
-what keeps two separate strokes from being connected by one long straight line.
+Strokes are also kept as pixels, in an ink layer plus a mask marking where ink
+exists. Each segment is drawn into that layer once, when it is made. Replaying
+every stored point onto every frame instead would cost O(points drawn so far)
+per frame, so per-frame cost would grow for the duration of the session.
 
 ---
 
 ## Quick start
 
-**Requirements:** Python 3.9+ and a webcam.
+**Requirements:** Python 3.10+ and a webcam.
 
 ```bash
 # 1. Clone
@@ -79,7 +87,12 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Four windows open: **Live Drawing**, **Paint**, **Mask** and **Color detectors**.
+`python -m meno` is equivalent. After `pip install -e .` the `meno` command is
+also available.
+
+One window opens, containing the live feed, the paint canvas, the mask and the
+control panel. The last three are dock widgets and can be hidden from the
+**View** menu; their visibility is remembered between sessions.
 
 ---
 
@@ -87,26 +100,29 @@ Four windows open: **Live Drawing**, **Paint**, **Mask** and **Color detectors**
 
 ### 1. Tune the colour first
 
-Hold your object in front of the camera and look at the **Mask** window. Adjust
-the six trackbars until your object is the *only* solid white shape there:
+Hold the object in front of the camera and watch the **Mask** view. Adjust the
+six sliders until the object is the only solid white shape in it:
 
-- **Hue** — which colour you are chasing (0–180 in OpenCV, i.e. half of the
-  usual 0–360°). Set the lower/upper pair to bracket your object's hue.
-- **Saturation** — how vivid the colour is. Raise the *lower* bound to reject
-  washed-out greys and skin tones.
-- **Value** — how bright it is. Raise the *lower* bound to reject shadows.
+- **Hue** — the target colour (0–180 in OpenCV, half the usual 0–360°). Set the
+  lower and upper pair to bracket the object's hue.
+- **Saturation** — colour intensity. Raise the lower bound to reject greys and
+  skin tones.
+- **Value** — brightness. Raise the lower bound to reject shadows.
 
-The defaults are tuned for a **blue** object under indoor light.
+The shipped presets cover blue, green, red and yellow objects under indoor
+light. **Save as...** stores the current values under a name.
 
 ### 2. Draw
 
 | Action | How |
 |--------|-----|
 | Draw | Move the object anywhere below the toolbar strip |
-| Change colour | Hover over the blue / green / red / yellow box |
-| Clear the canvas | Hover over the **CLEAR** box |
-| End a stroke | Move the object out of frame (or out of the colour range) |
-| Quit | Press <kbd>q</kbd> with any window focused |
+| Change colour | Hold the object over the blue / green / red / yellow box |
+| Clear the canvas | Hold the object over the **CLEAR** box, or press <kbd>Ctrl</kbd>+<kbd>L</kbd> |
+| End a stroke | Move the object out of frame, or out of the colour range |
+| Save the drawing | <kbd>Ctrl</kbd>+<kbd>S</kbd> |
+| Edit the toolbar | <kbd>Ctrl</kbd>+<kbd>E</kbd>, then drag a button to move it or its edge to resize it |
+| Quit | <kbd>Ctrl</kbd>+<kbd>Q</kbd> |
 
 ---
 
@@ -114,55 +130,153 @@ The defaults are tuned for a **blue** object under indoor light.
 
 ```
 meno/
-├── main.py            # The entire application: config, helpers, capture loop
-├── requirements.txt   # Pinned runtime dependencies
-├── .gitignore         # Keeps .venv/ and __pycache__/ out of version control
-├── LICENSE            # MIT
+├── main.py                 # Entry point shim; also the PyInstaller entry script
+├── meno/
+│   ├── __main__.py         # QApplication setup and crash handler
+│   ├── camera.py           # Device open, configure and enumerate
+│   ├── capture.py          # Capture worker thread
+│   ├── vision.py           # The per-frame pipeline (AirCanvas)
+│   ├── hud.py              # Toolbar layout model, loaded from JSON
+│   ├── config.py           # File locations and persisted settings
+│   ├── ui/
+│   │   ├── window.py       # Main window: docks, menus, controls
+│   │   └── video_view.py   # Frame display widget and HUD painting/editing
+│   └── assets/themes/      # Bundled default HUD layout
+├── tools/make_icon.py      # Generates meno/assets/meno.ico
+├── meno.spec               # PyInstaller build configuration
+├── installer/meno.iss      # Inno Setup installer script
+├── build.ps1               # Builds the executable and the installer
+├── pyproject.toml
+├── requirements.txt
+├── LICENSE                 # MIT
 └── README.md
 ```
 
-`main.py` is organised into four labelled sections:
-
-1. **Configuration** — palette, toolbar layout, kernel size, HSV defaults. Every
-   magic number lives here rather than being scattered through the loop.
-2. **Helpers** — `draw_toolbar()`, `new_stroke_buffers()` and the trackbar
-   callback OpenCV requires.
-3. **Setup** — build the trackbar panel, allocate the stroke buffers and the
-   canvas, open the camera.
-4. **Main loop** — the per-frame pipeline described above.
+The dependency direction is one-way: `ui/` imports from `vision.py`, `hud.py`,
+`camera.py` and `config.py`, and none of those import from `ui/`. `AirCanvas`
+performs no I/O and holds no Qt references, so the front end can be replaced
+without changing the pipeline.
 
 ---
 
 ## Design notes
 
-- **Why HSV and not BGR?** In BGR, "blue" changes numerically the moment a cloud
-  passes the window, because all three channels carry brightness. HSV puts
-  brightness in a single channel (`value`), so a hue range stays valid across a
-  much wider set of lighting conditions.
-- **Why the largest contour?** Cheap and effective: anything else sharing the
-  target colour is usually smaller and further away. It fails gracefully — if a
-  bigger object of that colour enters the frame, the pointer simply jumps, and
-  tightening the saturation bound fixes it.
-- **Why moments instead of the bounding-box centre?** The centroid is stable
-  under rotation and partial occlusion; a bounding box jitters as the silhouette
+- **HSV rather than BGR.** In BGR, all three channels carry brightness, so a
+  lighting change moves the numeric definition of a colour. HSV isolates
+  brightness in the `value` channel, so a hue range remains valid across a
+  wider set of conditions.
+- **Largest contour.** Other objects sharing the target colour are usually
+  smaller or further away. The failure mode is graceful: a larger object of
+  that colour makes the pointer jump, and tightening the saturation bound
+  corrects it.
+- **Moments rather than the bounding-box centre.** The centroid is stable under
+  rotation and partial occlusion; a bounding box shifts as the silhouette
   changes shape.
-- **Why one stroke list per colour?** It keeps rendering trivial (loop colour →
-  stroke → point) and makes the *clear* action a single reset instead of a
+- **One stroke list per colour.** Rendering is a straightforward loop over
+  colour, stroke and point, and clearing is a single reset rather than a
   filtered delete.
+- **Fractional HUD coordinates.** Button positions are stored as fractions of
+  the frame, so one layout is correct at any capture resolution and switching
+  cameras cannot place a button off-screen.
+- **Capture on a worker thread.** `cap.read()` blocks until the camera produces
+  a frame. Calling it on the GUI thread leaves that thread unable to repaint or
+  handle input for most of each frame interval.
+
+---
+
+## Building a Windows .exe and installer
+
+Two stages. `build.ps1` runs both:
+
+```powershell
+.\build.ps1                  # exe + installer
+.\build.ps1 -SkipInstaller   # exe only
+.\build.ps1 -Clean           # delete build/ and dist/ first
+```
+
+### Stage 1 — the executable (PyInstaller)
+
+`pyinstaller meno.spec` produces **`dist\Meno\`**: `Meno.exe` plus an
+`_internal` directory containing Qt, OpenCV and a private copy of Python. That
+directory is a complete application and runs on a machine with no Python
+installed. Approximately 183 MB.
+
+The configuration is in [`meno.spec`](meno.spec). Four points determine whether
+the build works:
+
+- **The entry point is `main.py`, not `meno/__main__.py`.** PyInstaller
+  executes the entry script as a top-level module, so a module using relative
+  imports fails at startup with *"attempted relative import with no known
+  parent package"*.
+- **One directory, not `--onefile`.** A onefile executable unpacks the whole
+  bundle to a temporary directory on every launch, which delays startup and is
+  a common antivirus heuristic trigger.
+- **Assets are bundled to `assets/`**, matching where `config.asset_path()`
+  resolves under `sys._MEIPASS`. Both must be changed together.
+- **Unused Qt modules, OpenCV's ffmpeg and Qt's software OpenGL are excluded**,
+  which removes about 50 MB that is unreachable from this application.
+
+### Stage 2 — the installer (Inno Setup)
+
+Inno Setup is a separate download:
+
+```powershell
+winget install JRSoftware.InnoSetup
+```
+
+`build.ps1` locates `ISCC.exe` and compiles
+[`installer/meno.iss`](installer/meno.iss) into
+**`dist\installer\Meno-0.1.0-Setup.exe`**, a Windows installer with a Start
+menu entry, an optional desktop icon and an uninstaller. If Inno Setup is
+absent the script completes stage 1 and reports what is missing.
+
+The installer requests no administrator rights by default and can install into
+the user's own profile; a per-machine install into Program Files is selectable
+on the first page.
+
+### Releasing a new version
+
+The version appears in three files and must be changed in all of them:
+`pyproject.toml`, `installer/version_info.txt` and the `AppVersion` line in
+`installer/meno.iss`. `AppId` must not change: it is how Windows recognises an
+existing installation and upgrades it in place.
+
+### SmartScreen
+
+The output is unsigned, so the first run produces a *"Windows protected your
+PC"* dialog requiring *More info → Run anyway*. This requires a code-signing
+certificate to remove; no build setting affects it.
+
+---
+
+## Camera and frame rate
+
+The status bar shows the measured frame rate. A rate well below 30 is usually
+caused by **auto-exposure**: in low light a webcam lengthens its integration
+time to brighten the image, and a frame held open for 1/12 s can only be
+delivered twelve times a second. No software setting can retrieve frames the
+camera has not captured.
+
+The **Lock exposure** checkbox in the control panel pins the exposure. It is
+enabled by default. On a typical webcam in an average room it is the difference
+between roughly 13 fps and 30 fps. The adjacent slider trades brightness
+against frame rate; disabling the checkbox restores automatic exposure.
+
+A locked exposure also holds the colours constant, which the HSV thresholds
+depend on.
 
 ---
 
 ## Known limitations & possible next steps
 
-- Only one pen is tracked at a time — the largest blob wins.
-- The `Paint` window is display-only; there is no "save as PNG" yet
-  (`cv.imwrite("drawing.png", paintWindow)` would be the one-liner).
-- The toolbar coordinates assume a 640-px-wide frame; a non-standard webcam
-  resolution shifts the buttons relative to the video.
-- Hover-to-click has no dwell timer, so passing the pen across the toolbar on
-  the way somewhere else can trigger a button.
-- Natural extensions: adjustable brush thickness, an undo stack, saving/loading
-  artwork, and swapping colour tracking for a hand-landmark model such as
+- Only one object is tracked at a time — the largest blob wins.
+- Hover-to-click has no dwell timer, so moving the pen across the toolbar on
+  the way elsewhere can trigger a button.
+- Switching cameras takes one to two seconds, during which no frames arrive.
+- Exposure control is implemented for DirectShow and V4L2 property semantics;
+  other backends may ignore it.
+- Possible extensions: adjustable brush thickness, an undo stack, loading saved
+  artwork, and replacing colour tracking with a hand-landmark model such as
   MediaPipe.
 
 ---

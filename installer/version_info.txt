@@ -1,0 +1,39 @@
+# Windows version resource, written into Meno.exe by PyInstaller.
+#
+# Populates the Details tab of the file's properties and is read by SmartScreen
+# and antivirus heuristics when assessing an unsigned executable.
+#
+# Keep the four-part version numbers in step with pyproject.toml and
+# installer/meno.iss.
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(0, 1, 0, 0),
+    prodvers=(0, 1, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,        # Windows NT, Win32
+    fileType=0x1,      # application
+    subtype=0x0,
+    date=(0, 0),
+  ),
+  kids=[
+    StringFileInfo(
+      [
+        StringTable(
+          "040904B0",  # US English, Unicode
+          [
+            StringStruct("CompanyName", "Klay Garcia"),
+            StringStruct("FileDescription", "Meno - Air Canvas"),
+            StringStruct("FileVersion", "0.1.0.0"),
+            StringStruct("InternalName", "Meno"),
+            StringStruct("LegalCopyright", "Copyright (c) Klay Garcia"),
+            StringStruct("OriginalFilename", "Meno.exe"),
+            StringStruct("ProductName", "Meno"),
+            StringStruct("ProductVersion", "0.1.0.0"),
+          ],
+        )
+      ]
+    ),
+    VarFileInfo([VarStruct("Translation", [0x0409, 1200])]),
+  ],
+)

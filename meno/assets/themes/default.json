@@ -1,0 +1,66 @@
+{
+  "_comment": "Default HUD layout. Copied to %APPDATA%/Meno/hud.json on first run; edit that copy rather than this file. All positions are fractions of the frame, so the layout remains correct at any capture resolution.",
+  "band_pct": 0.135,
+  "palette": [
+    "#0000ff",
+    "#00ff00",
+    "#ff0000",
+    "#ffff00"
+  ],
+  "theme": {
+    "label_color": "#ffffff",
+    "font_px": 13,
+    "corner_radius": 6,
+    "border_color": "#ffffff",
+    "border_width": 1,
+    "active_border_color": "#ffffff",
+    "active_border_width": 3,
+    "opacity": 0.85
+  },
+  "buttons": [
+    {
+      "id": "clear",
+      "label": "CLEAR",
+      "x1_pct": 0.0625,
+      "x2_pct": 0.2188,
+      "fill": "#000000",
+      "action": "clear"
+    },
+    {
+      "id": "blue",
+      "label": null,
+      "x1_pct": 0.25,
+      "x2_pct": 0.3984,
+      "fill": "#0000ff",
+      "action": "set_color",
+      "arg": 0
+    },
+    {
+      "id": "green",
+      "label": null,
+      "x1_pct": 0.4297,
+      "x2_pct": 0.5781,
+      "fill": "#00ff00",
+      "action": "set_color",
+      "arg": 1
+    },
+    {
+      "id": "red",
+      "label": null,
+      "x1_pct": 0.6094,
+      "x2_pct": 0.7578,
+      "fill": "#ff0000",
+      "action": "set_color",
+      "arg": 2
+    },
+    {
+      "id": "yellow",
+      "label": null,
+      "x1_pct": 0.7891,
+      "x2_pct": 0.9375,
+      "fill": "#ffff00",
+      "action": "set_color",
+      "arg": 3
+    }
+  ]
+}

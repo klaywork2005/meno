@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meno"
+version = "0.1.0"
+description = "Draw in the air with any coloured object and a webcam."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Klay Garcia" }]
+requires-python = ">=3.10"
+dependencies = [
+    # The headless wheel is required: opencv-python bundles its own Qt
+    # plugins, which conflict with PySide6's in the same process and produce
+    # "could not load the Qt platform plugin". OpenCV's own windows are not
+    # used.
+    "opencv-python-headless>=4.5",
+    "numpy>=1.21",
+    "PySide6-Essentials>=6.7",
+]
+
+[project.optional-dependencies]
+build = ["pyinstaller>=6.11"]
+
+[project.scripts]
+meno = "meno.__main__:main"
+
+[project.gui-scripts]
+meno-gui = "meno.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["meno*"]
+
+[tool.setuptools.package-data]
+meno = ["assets/**/*"]
