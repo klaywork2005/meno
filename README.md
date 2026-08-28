@@ -5,7 +5,7 @@ path it takes, turning any sufficiently saturated object into a brush. Input is
 the camera only; no mouse or touchscreen is used while drawing.
 
 Implemented with Python, OpenCV, NumPy and PySide6. It uses classical computer
-vision — colour thresholding and contour analysis — with no machine-learning
+vision. colour thresholding and contour analysis — with no machine-learning
 model and no training data.
 
 <!-- Add a demo GIF here once recorded, e.g.:
