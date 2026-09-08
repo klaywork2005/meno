@@ -67,10 +67,20 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7B40279D06C54E63B72C44B36A436923 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2AF4ABFEBCB3429E9F5D68F6A618872C }}
 
+      - name: Clear Django-specific Oryx build commands
+        run: |
+          resource_group="$(az webapp list --query "[?name=='lookback-web'].resourceGroup | [0]" -o tsv)"
+          if [ -n "$resource_group" ]; then
+            az webapp config appsettings delete \
+              --name lookback-web \
+              --resource-group "$resource_group" \
+              --setting-names POST_BUILD_COMMAND PRE_BUILD_COMMAND
+          fi
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'lookback-web'
           slot-name: 'Production'
-          
+          package: .
