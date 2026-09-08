@@ -1,5 +1,5 @@
 {
-  "_comment": "Default HUD layout. Copied to %APPDATA%/Meno/hud.json on first run; edit that copy rather than this file. All positions are fractions of the frame, so the layout remains correct at any capture resolution.",
+  "_comment": "Fixed toolbar layout. Positions are fractions of the camera frame.",
   "band_pct": 0.135,
   "palette": [
     "#0000ff",
